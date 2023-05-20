@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang=en>
+<head>
+  <title>Microphone Capture Demo</title>
+  
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  
+  <meta name="keywords" content="">
+  <meta name="description" content="">
+
+  <link rel="stylesheet" href="css/trongate.css">
+</head>
+<body>
+  <div class="container">
+    <h1>WebAudio test</h1>
+    <div style="padding: 20px 0;">
+      <button id="micstart-button" style="background-color:crimson;">Microphone ON</button>
+      <button id="micstop-button">OFF</button>
+
+      <label for="mic-gain">Microphone gain:</label>
+      <input type="range" id="mic-gain" name="mic-gain" min="-35" max="15" step="1" value="-10"/>
+      <span id="mic-gain-display">-10 dB</span>
+    </div>
+
+    <div style="padding: 20px 0;">
+      <button id="oscstart-button" style="background-color:crimson;">Oscillator ON</button>
+      <button id="oscstop-button">OFF</button>
+
+      <span><label for="osc-gain">Oscillator gain:</label></span>
+      <input type="range" id="osc-gain" name="osc-gain" min="-35" max="15" step="1" value="-10"/>
+      <span id="osc-gain-display">-10 dB</span>
+    </div>
+  </div>
+
+  <script>
+
+let audioContext = null;
+let mic_node = null;
+let osc_node = null;
+let micGainRange;
+let micGainParam;
+let oscGainRange;
+let oscGainParam;
+
+//async function createWorkletProcessor(context) {
+//  let processorNode;
+//
+//  try {
+//    processorNode = new AudioWorkletNode(context, 'worklet-processor');
+//  }
+//  catch (e) {
+//    try {
+//      console.log("adding...");
+//      await context.audioWorklet.addModule("processor.js");
+//      processorNode = new AudioWorkletNode(context, 'worklet-processor');
+//    }
+//    catch (e) {
+//      console.log(`** Error: Unable to create worklet node: ${e}`);
+//      return null;
+//    }
+//  }
+//
+//  return processorNode;
+//}
+
+
+window.addEventListener("load", (event) => {
+  document.getElementById('micstart-button').addEventListener('click', async () => {
+    if(!audioContext) {
+      try {
+        audioContext = new AudioContext();
+      }
+      catch(err) {
+        alert(`** Error creating AudioContext: ${err.name}`);
+        return null;
+      }
+    }
+
+    const handle_success = async function(stream) {
+      try {
+        mic_node = audioContext.createMediaStreamSource(stream);
+      }
+      catch(err) {
+        alert(`** Error creating microphone stream: ${err.name}`);
+        return null;
+      }
+      const gain_node = new GainNode(audioContext);
+
+      micGainParam = gain_node.gain;
+      micGainRange.disabled = false;
+
+      mic_node.connect(gain_node).connect(audioContext.destination);
+    };
+
+    if(!mic_node) {
+      if(navigator.mediaDevices) { 
+        console.log("using navigator.mediaDevices.getUserMedia");
+        //micstream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        navigator.mediaDevices.getUserMedia({ audio: true })
+          .then(handle_success)
+          .catch((err) => { alert(`** Error accessing microphone: ${err.name}`); }
+        );
+      }
+      else {
+        if(navigator.getUserMedia) {
+          console.log("using navigator.getUserMedia");
+          navigator.getUserMedia({ audio: true }, handle_success, (err) => {
+            alert(`** Error accessing microphone: ${err.name}`);
+          });
+        }
+        else if(navigator.webkitGetUserMedia) {
+          console.log("using navigator.webkitGetUserMedia");
+          navigator.webkitGetUserMedia({ audio: true }, handle_success, (err) => {
+            alert(`** Error accessing microphone: ${err.name}`);
+          });
+        }
+        else if(navigator.mozGetUserMedia) {
+          console.log("using navigator.mozGetUserMedia");
+          navigator.mozGetUserMedia({ audio: true }, handle_success, (err) => {
+            alert(`** Error accessing microphone: ${err.name}`);
+          });
+        }
+        else {
+          alert(`** Error: Browser unable to access media devices`);
+        }
+      }
+    }
+  });
+
+  document.getElementById('micstop-button').addEventListener('click', async () => {
+    // Close audio stream
+    if(audioContext && mic_node) {
+      console.log("stopping microphone...");
+      mic_node.disconnect();
+      mic_node = null;
+    }
+    micGainRange.disabled = true;
+  });
+
+  document.getElementById('oscstart-button').addEventListener('click', async () => {
+    if(!audioContext) {
+      try {
+        audioContext = new AudioContext();
+      }
+      catch(err) {
+        alert(`** Error creating AudioContext: ${err.name}`);
+        return null;
+      }
+    }
+
+    if(!osc_node) {
+      try {
+        osc_node = new OscillatorNode(audioContext, { type: 'sawtooth', frequency: 196 });
+      }
+      catch(err) {
+        alert(`** Error creating oscillator: ${err.name}`);
+        return null;
+      }
+      const gain_node = new GainNode(audioContext);
+
+      oscGainParam = gain_node.gain;
+      oscGainRange.disabled = false;
+
+      osc_node.connect(gain_node).connect(audioContext.destination);
+      osc_node.start();
+    }
+  });
+
+  document.getElementById('oscstop-button').addEventListener('click', async () => {
+    // Close audio stream
+    if(audioContext && osc_node) {
+      console.log("stopping oscillator...");
+      osc_node.disconnect();
+      osc_node = null;
+    }
+    oscGainRange.disabled = true;
+  });
+
+  micGainRange = document.getElementById("mic-gain");
+  micGainRange.oninput = updateMicGain;
+  micGainRange.disabled = true;
+
+  oscGainRange = document.getElementById("osc-gain");
+  oscGainRange.oninput = updateOscGain;
+  oscGainRange.disabled = true;
+});
+
+function updateMicGain(event) {
+  const gain = 10**(event.target.value/20.0);
+  micGainParam.setValueAtTime(gain, audioContext.currentTime);
+  document.getElementById('mic-gain-display').innerHTML = event.target.value + " dB";
+}
+
+function updateOscGain(event) {
+  const gain = 10**(event.target.value/20.0);
+  oscGainParam.setValueAtTime(gain, audioContext.currentTime);
+  document.getElementById('osc-gain-display').innerHTML = event.target.value + " dB";
+}
+
+  </script>
+</body>
+</html>
