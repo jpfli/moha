@@ -15,11 +15,16 @@
   <div class="container">
     <h1>WebAudio test</h1>
     <div style="padding: 20px 0;">
+      <p>
+         <label for="audio_source">Audio input source: </label>
+         <select id="audio_source"></select>
+      </p>
+
       <button id="micstart-button" style="background-color:crimson;">Microphone ON</button>
       <button id="micstop-button">OFF</button>
 
-      <label for="mic-gain">Microphone gain:</label>
-      <input type="range" id="mic-gain" name="mic-gain" min="-35" max="15" step="1" value="-10"/>
+      <label for="mic_gain">Microphone gain:</label>
+      <input type="range" id="mic_gain" name="mic-gain" min="-35" max="15" step="1" value="-10"/>
       <span id="mic-gain-display">-10 dB</span>
     </div>
 
@@ -27,8 +32,8 @@
       <button id="oscstart-button" style="background-color:crimson;">Oscillator ON</button>
       <button id="oscstop-button">OFF</button>
 
-      <span><label for="osc-gain">Oscillator gain:</label></span>
-      <input type="range" id="osc-gain" name="osc-gain" min="-35" max="15" step="1" value="-10"/>
+      <span><label for="osc_gain">Oscillator gain:</label></span>
+      <input type="range" id="osc_gain" name="osc-gain" min="-35" max="15" step="1" value="-10"/>
       <span id="osc-gain-display">-10 dB</span>
     </div>
   </div>
@@ -36,167 +41,105 @@
   <script>
 
 let audioContext = null;
+let mic_stream = null;
+let micGainRange = document.querySelector("input#mic_gain");
+let oscGainRange = document.querySelector("input#osc_gain");
+
 let mic_node = null;
+let mic_gain_node = null;
 let osc_node = null;
-let micGainRange;
 let micGainParam;
-let oscGainRange;
-let oscGainParam;
-
-//async function createWorkletProcessor(context) {
-//  let processorNode;
-//
-//  try {
-//    processorNode = new AudioWorkletNode(context, 'worklet-processor');
-//  }
-//  catch (e) {
-//    try {
-//      console.log("adding...");
-//      await context.audioWorklet.addModule("processor.js");
-//      processorNode = new AudioWorkletNode(context, 'worklet-processor');
-//    }
-//    catch (e) {
-//      console.log(`** Error: Unable to create worklet node: ${e}`);
-//      return null;
-//    }
-//  }
-//
-//  return processorNode;
-//}
 
 
-window.addEventListener("load", (event) => {
-  document.getElementById('micstart-button').addEventListener('click', async () => {
-    if(!audioContext) {
-      try {
-        audioContext = new AudioContext();
-      }
-      catch(err) {
-        alert(`** Error creating AudioContext: ${err.name}`);
-        return null;
-      }
-    }
+const audioInputSelect = document.querySelector('select#audio_source');
+const selectors = [audioInputSelect];
 
-    const handle_success = async function(stream) {
-      try {
-        mic_node = audioContext.createMediaStreamSource(stream);
-      }
-      catch(err) {
-        alert(`** Error creating microphone stream: ${err.name}`);
-        return null;
-      }
-      const gain_node = new GainNode(audioContext);
-
-      micGainParam = gain_node.gain;
-      micGainRange.disabled = false;
-
-      mic_node.connect(gain_node).connect(audioContext.destination);
-    };
-
-    if(!mic_node) {
-      if(navigator.mediaDevices) { 
-        console.log("using navigator.mediaDevices.getUserMedia");
-        //micstream = await navigator.mediaDevices.getUserMedia({ audio: true });
-        navigator.mediaDevices.getUserMedia({ audio: true })
-          .then(handle_success)
-          .catch((err) => { alert(`** Error accessing microphone: ${err.name}`); }
-        );
-      }
-      else {
-        if(navigator.getUserMedia) {
-          console.log("using navigator.getUserMedia");
-          navigator.getUserMedia({ audio: true }, handle_success, (err) => {
-            alert(`** Error accessing microphone: ${err.name}`);
-          });
-        }
-        else if(navigator.webkitGetUserMedia) {
-          console.log("using navigator.webkitGetUserMedia");
-          navigator.webkitGetUserMedia({ audio: true }, handle_success, (err) => {
-            alert(`** Error accessing microphone: ${err.name}`);
-          });
-        }
-        else if(navigator.mozGetUserMedia) {
-          console.log("using navigator.mozGetUserMedia");
-          navigator.mozGetUserMedia({ audio: true }, handle_success, (err) => {
-            alert(`** Error accessing microphone: ${err.name}`);
-          });
-        }
-        else {
-          alert(`** Error: Browser unable to access media devices`);
-        }
-      }
-    }
-  });
-
-  document.getElementById('micstop-button').addEventListener('click', async () => {
-    // Close audio stream
-    if(audioContext && mic_node) {
-      console.log("stopping microphone...");
-      mic_node.disconnect();
-      mic_node = null;
-    }
-    micGainRange.disabled = true;
-  });
-
-  document.getElementById('oscstart-button').addEventListener('click', async () => {
-    if(!audioContext) {
-      try {
-        audioContext = new AudioContext();
-      }
-      catch(err) {
-        alert(`** Error creating AudioContext: ${err.name}`);
-        return null;
-      }
-    }
-
-    if(!osc_node) {
-      try {
-        osc_node = new OscillatorNode(audioContext, { type: 'sawtooth', frequency: 196 });
-      }
-      catch(err) {
-        alert(`** Error creating oscillator: ${err.name}`);
-        return null;
-      }
-      const gain_node = new GainNode(audioContext);
-
-      oscGainParam = gain_node.gain;
-      oscGainRange.disabled = false;
-
-      osc_node.connect(gain_node).connect(audioContext.destination);
-      osc_node.start();
-    }
-  });
-
-  document.getElementById('oscstop-button').addEventListener('click', async () => {
-    // Close audio stream
-    if(audioContext && osc_node) {
-      console.log("stopping oscillator...");
-      osc_node.disconnect();
-      osc_node = null;
-    }
-    oscGainRange.disabled = true;
-  });
-
-  micGainRange = document.getElementById("mic-gain");
-  micGainRange.oninput = updateMicGain;
-  micGainRange.disabled = true;
-
-  oscGainRange = document.getElementById("osc-gain");
-  oscGainRange.oninput = updateOscGain;
-  oscGainRange.disabled = true;
-});
-
-function updateMicGain(event) {
+function update_mic_gain(event) {
   const gain = 10**(event.target.value/20.0);
   micGainParam.setValueAtTime(gain, audioContext.currentTime);
   document.getElementById('mic-gain-display').innerHTML = event.target.value + " dB";
 }
 
-function updateOscGain(event) {
+function update_osc_gain(event) {
   const gain = 10**(event.target.value/20.0);
   oscGainParam.setValueAtTime(gain, audioContext.currentTime);
   document.getElementById('osc-gain-display').innerHTML = event.target.value + " dB";
 }
+
+window.addEventListener("load", (event) => {
+  micGainRange.oninput = update_mic_gain;
+  micGainRange.disabled = true;
+
+  audioInputSelect.onchange = () => {
+      console.log("onchange()");
+
+      // Close stream before changing device
+      if(mic_stream) mic_stream.getTracks().forEach((track) => { track.stop(); });
+
+      const audioSource = audioInputSelect.value;
+      const constraints = audioSource ? { audio: { deviceId: {exact: audioSource} } } : { audio: true };
+      navigator.mediaDevices.getUserMedia(constraints)
+        .then((stream) => {
+            mic_stream = stream;
+
+            if(!audioContext) audioContext = new AudioContext();
+
+            try {
+              if(mic_node) mic_node.disconnect();
+              mic_node = audioContext.createMediaStreamSource(mic_stream);
+              if(!mic_gain_node) mic_gain_node = new GainNode(audioContext);
+              mic_node.connect(mic_gain_node).connect(audioContext.destination);
+            }
+            catch(err) {
+              console.error(`Error creating microphone stream source: ${err.message}`);
+            }
+          })
+        .catch((err) => console.error(`Error opening microphone stream: ${err.message}`));
+    };
+
+
+
+  navigator.mediaDevices.getUserMedia({ audio: true })
+    .then((stream) => {
+        mic_stream = stream;
+
+        if(!audioContext) audioContext = new AudioContext();
+
+        try {
+          if(mic_node) mic_node.disconnect();
+          mic_node = audioContext.createMediaStreamSource(mic_stream);
+        }
+        catch(err) {
+          alert(`** Error getting microphone stream: ${err.name}`);
+        }
+
+        if(!mic_gain_node) mic_gain_node = new GainNode(audioContext);
+        mic_node.connect(mic_gain_node).connect(audioContext.destination);
+
+        micGainParam = mic_gain_node.gain;
+        micGainRange.disabled = false;
+
+        navigator.mediaDevices.enumerateDevices()
+          .then((devices) => {
+              console.log("handle devices");
+
+              for(idx = audioInputSelect.length - 1; idx >= 0; --idx) {
+                audioInputSelect.remove(idx);
+              }
+
+              devices.forEach((device_info) => {
+                const option = document.createElement('option');
+                option.value = device_info.deviceId;
+                if(device_info.kind === 'audioinput') {
+                  option.text = device_info.label || `microphone ${audioInputSelect.length + 1}`;
+                  audioInputSelect.appendChild(option);
+                }
+              });
+            })
+          .catch((err) => console.error(`Error enumerating devices: ${err.message}`));
+      })
+    .catch((err) => console.error(`Error opening microphjone stream: ${err.message}`));
+});
 
   </script>
 </body>
