@@ -24,17 +24,8 @@
       <button id="micstop-button">OFF</button>
 
       <label for="mic_gain">Microphone gain:</label>
-      <input type="range" id="mic_gain" name="mic-gain" min="-35" max="15" step="1" value="-10"/>
+      <input type="range" id="mic_gain" name="mic-gain" min="-40" max="40" step="1" value="-10"/>
       <span id="mic-gain-display">-10 dB</span>
-    </div>
-
-    <div style="padding: 20px 0;">
-      <button id="oscstart-button" style="background-color:crimson;">Oscillator ON</button>
-      <button id="oscstop-button">OFF</button>
-
-      <span><label for="osc_gain">Oscillator gain:</label></span>
-      <input type="range" id="osc_gain" name="osc-gain" min="-35" max="15" step="1" value="-10"/>
-      <span id="osc-gain-display">-10 dB</span>
     </div>
   </div>
 
@@ -43,11 +34,9 @@
 let audioContext = null;
 let mic_stream = null;
 let micGainRange = document.querySelector("input#mic_gain");
-let oscGainRange = document.querySelector("input#osc_gain");
 
 let mic_node = null;
 let mic_gain_node = null;
-let osc_node = null;
 let micGainParam;
 
 
@@ -58,12 +47,6 @@ function update_mic_gain(event) {
   const gain = 10**(event.target.value/20.0);
   micGainParam.setValueAtTime(gain, audioContext.currentTime);
   document.getElementById('mic-gain-display').innerHTML = event.target.value + " dB";
-}
-
-function update_osc_gain(event) {
-  const gain = 10**(event.target.value/20.0);
-  oscGainParam.setValueAtTime(gain, audioContext.currentTime);
-  document.getElementById('osc-gain-display').innerHTML = event.target.value + " dB";
 }
 
 window.addEventListener("load", (event) => {
