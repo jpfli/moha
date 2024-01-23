@@ -16,31 +16,32 @@
     <title>Random Dot Drawer with Dynamic Cells, Grid, Mouse Click Capture, and Pause on Hold</title>
 </head>
 <body>
-    <canvas id="dotCanvas"></canvas>
+    <canvas id="Canvas"></canvas>
 
     <script>
         document.addEventListener('DOMContentLoaded', function () {
             // Get the canvas element
-            var canvas = document.getElementById('dotCanvas');
-            var ctx = canvas.getContext('2d');
+            const canvas = document.getElementById('Canvas');
+            const ctx = canvas.getContext('2d');
 
             // Set canvas size
             canvas.width = window.innerWidth;
             canvas.height = window.innerHeight;
 
-            // Calculate cell size based on the screen width
-            var cellSize = canvas.width / 20;
-            
-            // Calculate the number of cells in the x and y directions using floor
-            var numCellsX = Math.floor(canvas.width / cellSize);
-            var numCellsY = Math.floor(canvas.height / cellSize);
+            const gridColumns = 10;
+            let gridRows = Math.floor(canvas.height / (canvas.width / gridColumns)) & ~1;
 
+            // Calculate cell size based on the screen width
+            let cellSize = canvas.width / gridColumns;
+
+            let dot_timer = 0;
+            
             // Array to store the coordinates of all cells
-            var allCellCoordinates = [];
+            let allCellCoordinates = [];
 
             // Fill the array with all cell coordinates
-            for (let i = 0; i < numCellsX; i++) {
-                for (let j = 0; j < numCellsY; j++) {
+            for (let i = 0; i < gridColumns; i++) {
+                for (let j = 0; j < gridRows; j++) {
                     allCellCoordinates.push({ x: (i + 0.5) * cellSize, y: (j + 0.5) * cellSize });
                 }
             }
@@ -48,47 +49,30 @@
             // Shuffle the array to randomize the order
             shuffleArray(allCellCoordinates);
 
-            var frame_counter = 0;
-
             // Variable to store the index of the current dot
-            var currentDotIndex = 0;
-
-            // Variable to store the coordinates of the current dot
-            var currentDot = {
-                x: Math.floor((canvas.width / 2) / cellSize) * cellSize,
-                y: Math.floor((canvas.height / 2) / cellSize) * cellSize };
+            let currentDotIndex = 0;
 
             // Array to store the coordinates of the dots
-            var dotCoordinatesArray = [];
+            let dotCoordinatesArray = [];
 
             // Variable to store the timestamp when the mouse button is pressed
-            var mouseDownTimestamp = 0;
+            let mouseDownTimestamp = 0;
 
             // Flag to indicate if the app is paused
-            var isPaused = false;
+            let isPaused = true;
 
             // Function to draw a dot at the next cell
             function update() {
-                if (!isPaused && mouseDownTimestamp != 0) {
-                    // Pause the app and show all saved dots in green
-                    if (Date.now() - mouseDownTimestamp >= 2000) {
-                        dotCoordinatesArray.pop(); // Remove the dot that was added when mouse button was pressed
-                        console.log("Coordinates popped: ", {tnow:Date.now(), tdwn:mouseDownTimestamp});
-                        mouseDownTimestamp = 0;
-                        isPaused = true;
-                    }
-                }
-                
-                ctx.clearRect(0, 0, canvas.width, canvas.height); // Clear canvas
-                
                 if (isPaused) {
+                    ctx.clearRect(0, 0, canvas.width, canvas.height); // Clear canvas
+                
                     // Draw grid lines in lightgray
                     ctx.beginPath();
-                    for (let i = 0; i <= numCellsX; i++) {
+                    for (let i = 0; i <= gridColumns; i++) {
                         ctx.moveTo(i * cellSize, 0);
-                        ctx.lineTo(i * cellSize, numCellsY * cellSize);
+                        ctx.lineTo(i * cellSize, gridRows * cellSize);
                     }
-                    for (let j = 0; j <= numCellsY; j++) {
+                    for (let j = 0; j <= gridRows; j++) {
                         ctx.moveTo(0, j * cellSize);
                         ctx.lineTo(canvas.width, j * cellSize);
                     }
@@ -104,17 +88,16 @@
                     }
                 }
                 else if (mouseDownTimestamp == 0){
-                    if (frame_counter >= 90) {
-                        frame_counter = 0;
-                        if (currentDotIndex >= allCellCoordinates.length) {
-                            // If all cells have been visited, reset the index and reshuffle the array
-                            currentDotIndex = 0;
-                            shuffleArray(allCellCoordinates);
-                        }
-                    
-                        currentDot = allCellCoordinates[currentDotIndex];
-                        currentDotIndex++;
+                    ctx.clearRect(0, 0, canvas.width, canvas.height); // Clear canvas
+
+                    if (dot_timer >= 99) {
+                        dot_timer = 0;
+
+                        advanceDotIndex();
                     }
+
+                    console.log("currentDotIndex: " + currentDotIndex);
+                    let currentDot = allCellCoordinates[currentDotIndex];
 
                     // Draw the dot
                     ctx.beginPath();
@@ -122,7 +105,23 @@
                     ctx.fillStyle = 'black';
                     ctx.fill();
 
-                    ++frame_counter;
+                    ++dot_timer;
+                }
+                else {
+                    // Pause the app and show all saved dots in green
+                    if (Date.now() - mouseDownTimestamp >= 2000) {
+                         // Remove the dot that was added when mouse button was pressed
+                        dotCoordinatesArray.pop();
+                        --currentDotIndex;
+                        if (currentDotIndex < 0) {
+                            currentDotIndex = allCellCoordinates.length - 1;
+                        }
+
+                        console.log("Coordinates popped: ", {tnow:Date.now(), tdwn:mouseDownTimestamp});
+
+                        mouseDownTimestamp = 0;
+                        isPaused = true;
+                    }
                 }
 
                     // Draw the crosshair at the center of the cell
@@ -139,28 +138,70 @@
                 ctx.stroke();
             }
 
-            // Event listener for mouse button press
-            document.addEventListener('mousedown', function (event) {
+            function advanceDotIndex() {
+                console.log("++currentDotIndex");
+                currentDotIndex++;
+                if (currentDotIndex >= allCellCoordinates.length) {
+                    // If all cells have been visited, reset the index and reshuffle the array
+                    isPaused = true;
+                    currentDotIndex = 0;
+                    shuffleArray(allCellCoordinates);
+                    console.log("New shuffle!");
+                }
+            }
+
+            function handle_mousedown(event) {
                 if (isPaused) {
                     isPaused = false;
-                    frame_counter = 0;
                 }
                 else {
                     // Add current dot coordinates to the array
+                    let currentDot = allCellCoordinates[currentDotIndex];
                     dotCoordinatesArray.push({ x: currentDot.x, y: currentDot.y });
-                    console.log("Coordinates added: ", { x: currentDot.x, y: currentDot.y });
+                    console.log("Coordinates added: " + Math.floor(currentDot.x / cellSize) + ", " + Math.floor(currentDot.y / cellSize));
+
+                    advanceDotIndex();
 
                     mouseDownTimestamp = Date.now();
                 }
-            });
+            }
+
+            function handle_mouseup(event) {
+                mouseDownTimestamp = 0;
+
+                dot_timer = 0;
+            }
+
+            // Event listener for mouse button press
+            document.addEventListener('mousedown', handle_mousedown);
+            document.addEventListener('touchstart', handle_mousedown);
 
             // Event listener for mouse button release
-            document.addEventListener('mouseup', function (event) {
-                mouseDownTimestamp = 0;
-            });
+            document.addEventListener('mouseup', handle_mouseup);
+            document.addEventListener('touchend', handle_mouseup);
 
-            // Update 30 times per seconds
-            setInterval(update, 33);
+            // Handle window resize
+            window.addEventListener('resize', () => {
+                canvas.width = window.innerWidth;
+                canvas.height = window.innerHeight;
+                gridRows = 2 * Math.floor(canvas.height / (2 * canvas.width / gridColumns));
+                cellSize = canvas.width / gridColumns;
+
+                // Fill the array with all cell coordinates
+                allCellCoordinates.length = 0;
+                for (let i = 0; i < gridColumns; i++) {
+                    for (let j = 0; j < gridRows; j++) {
+                        allCellCoordinates.push({ x: (i + 0.5) * cellSize, y: (j + 0.5) * cellSize });
+                    }
+                }
+
+                // Shuffle the array to randomize the order
+                shuffleArray(allCellCoordinates);
+
+                dotCoordinatesArray.length = 0;
+
+                isPaused = true;
+            });
 
             // Function to shuffle an array
             function shuffleArray(array) {
@@ -171,6 +212,15 @@
                     array[j] = temp;
                 }
             }
+
+            // Initial setup
+            function init() {
+                // Call the update function 30 times per second
+                setInterval(update, 1000 / 30);
+            }
+
+            // Run the initialization function
+            init();
         });
     </script>
 </body>
