@@ -54,7 +54,9 @@
             var currentDotIndex = 0;
 
             // Variable to store the coordinates of the current dot
-            var currentDot = { x: canvas.width / 2, y: canvas.height / 2 };
+            var currentDot = {
+                x: Math.floor((canvas.width / 2) / cellSize) * cellSize,
+                y: Math.floor((canvas.height / 2) / cellSize) * cellSize };
 
             // Array to store the coordinates of the dots
             var dotCoordinatesArray = [];
