@@ -54,7 +54,7 @@
             var currentDotIndex = 0;
 
             // Variable to store the coordinates of the current dot
-            var currentDot = { x: 0, y: 0 };
+            var currentDot = { x: canvas.width / 2, y: canvas.height / 2 };
 
             // Array to store the coordinates of the dots
             var dotCoordinatesArray = [];
@@ -122,6 +122,19 @@
 
                     ++frame_counter;
                 }
+
+                    // Draw the crosshair at the center of the cell
+                let cellCenterX = Math.floor((canvas.width / 2) / cellSize) * cellSize;
+                let cellCenterY = Math.floor((canvas.height / 2) / cellSize) * cellSize;
+
+                // Draw the crosshair at the center
+                ctx.beginPath();
+                ctx.moveTo(cellCenterX, 0);
+                ctx.lineTo(cellCenterX, canvas.height);
+                ctx.moveTo(0, cellCenterY);
+                ctx.lineTo(canvas.width, cellCenterY);
+                ctx.strokeStyle = 'red'; // Crosshair color
+                ctx.stroke();
             }
 
             // Event listener for mouse button press
@@ -160,4 +173,3 @@
     </script>
 </body>
 </html>
-
