@@ -28,7 +28,7 @@
             canvas.width = window.innerWidth;
             canvas.height = window.innerHeight;
 
-            const gridColumns = 10;
+            const gridColumns = 14;
             let gridRows = Math.floor(canvas.height / (canvas.width / gridColumns)) & ~1;
 
             // Calculate cell size based on the screen width
@@ -40,8 +40,8 @@
             let allCellCoordinates = [];
 
             // Fill the array with all cell coordinates
-            for (let i = 0; i < gridColumns; i++) {
-                for (let j = 0; j < gridRows; j++) {
+            for (let i = 0; i < gridColumns; ++i) {
+                for (let j = 0; j < gridRows; ++j) {
                     allCellCoordinates.push({ x: (i + 0.5) * cellSize, y: (j + 0.5) * cellSize });
                 }
             }
@@ -68,11 +68,11 @@
                 
                     // Draw grid lines in lightgray
                     ctx.beginPath();
-                    for (let i = 0; i <= gridColumns; i++) {
+                    for (let i = 0; i <= gridColumns; ++i) {
                         ctx.moveTo(i * cellSize, 0);
                         ctx.lineTo(i * cellSize, gridRows * cellSize);
                     }
-                    for (let j = 0; j <= gridRows; j++) {
+                    for (let j = 0; j <= gridRows; ++j) {
                         ctx.moveTo(0, j * cellSize);
                         ctx.lineTo(canvas.width, j * cellSize);
                     }
@@ -81,7 +81,7 @@
                     
                     // Draw stored dots in green
                     ctx.fillStyle = 'green';
-                    for (let k = 0; k < dotCoordinatesArray.length; k++) {
+                    for (let k = 0; k < dotCoordinatesArray.length; ++k) {
                         ctx.beginPath();
                         ctx.arc(dotCoordinatesArray[k].x, dotCoordinatesArray[k].y, 5, 0, 2 * Math.PI);
                         ctx.fill();
@@ -111,15 +111,15 @@
                     // Pause the app and show all saved dots in green
                     if (Date.now() - mouseDownTimestamp >= 2000) {
                          // Remove the dot that was added when mouse button was pressed
-                        dotCoordinatesArray.pop();
-                        --currentDotIndex;
-                        if (currentDotIndex < 0) {
-                            currentDotIndex = allCellCoordinates.length - 1;
-                        }
+                        //dotCoordinatesArray.pop();
+                        //--currentDotIndex;
+                        //if (currentDotIndex < 0) {
+                        //    currentDotIndex = allCellCoordinates.length - 1;
+                        //}
 
-                        console.log("Coordinates popped: ", {tnow:Date.now(), tdwn:mouseDownTimestamp});
+                        //console.log("Coordinates popped: ", {tnow:Date.now(), tdwn:mouseDownTimestamp});
 
-                        mouseDownTimestamp = 0;
+                        //mouseDownTimestamp = 0;
                         isPaused = true;
                     }
                 }
@@ -151,8 +151,27 @@
             }
 
             function handle_mousedown(event) {
+                if (!isPaused) {
+                    mouseDownTimestamp = Date.now();
+                }
+                //if (isPaused) {
+                //    isPaused = false;
+                //}
+                //else {
+                //    // Add current dot coordinates to the array
+                //    let currentDot = allCellCoordinates[currentDotIndex];
+                //    dotCoordinatesArray.push({ x: currentDot.x, y: currentDot.y });
+                //    console.log("Coordinates added: " + Math.floor(currentDot.x / cellSize) + ", " + Math.floor(currentDot.y / cellSize));
+
+                //    advanceDotIndex();
+
+                //    mouseDownTimestamp = Date.now();
+                //}
+            }
+
+            function handle_mouseup(event) {
                 if (isPaused) {
-                    isPaused = false;
+                    if(mouseDownTimestamp < 2000) isPaused = false;
                 }
                 else {
                     // Add current dot coordinates to the array
@@ -161,12 +180,8 @@
                     console.log("Coordinates added: " + Math.floor(currentDot.x / cellSize) + ", " + Math.floor(currentDot.y / cellSize));
 
                     advanceDotIndex();
-
-                    mouseDownTimestamp = Date.now();
                 }
-            }
 
-            function handle_mouseup(event) {
                 mouseDownTimestamp = 0;
 
                 dot_timer = 0;
@@ -187,10 +202,12 @@
                 gridRows = 2 * Math.floor(canvas.height / (2 * canvas.width / gridColumns));
                 cellSize = canvas.width / gridColumns;
 
+                dotCoordinatesArray.length = 0;
+
                 // Fill the array with all cell coordinates
                 allCellCoordinates.length = 0;
-                for (let i = 0; i < gridColumns; i++) {
-                    for (let j = 0; j < gridRows; j++) {
+                for (let i = 0; i < gridColumns; ++i) {
+                    for (let j = 0; j < gridRows; ++j) {
                         allCellCoordinates.push({ x: (i + 0.5) * cellSize, y: (j + 0.5) * cellSize });
                     }
                 }
@@ -198,14 +215,12 @@
                 // Shuffle the array to randomize the order
                 shuffleArray(allCellCoordinates);
 
-                dotCoordinatesArray.length = 0;
-
                 isPaused = true;
             });
 
             // Function to shuffle an array
             function shuffleArray(array) {
-                for (let i = array.length - 1; i > 0; i--) {
+                for (let i = array.length - 1; i > 0; --i) {
                     let j = Math.floor(Math.random() * (i + 1));
                     let temp = array[i];
                     array[i] = array[j];
